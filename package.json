@@ -1,0 +1,38 @@
+{
+  "name": "grawzycie",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/script.js",
+  "dependencies": {
+    "babel-preset-env": "^1.7.0",
+    "rimraf": "^2.6.3"
+  },
+  "eslintConfig": {
+    "globals": {
+      "start": true,
+      "run": true,
+      "setPeroidity": true
+    }
+  },
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "copyfiles": "^2.1.0"
+  },
+  "scripts": {
+    "bundle": "npm run copy && watchify \"./dev/index.js\" -o \"./dist/bundle.js\"",
+    "copy": "rimraf ./dist && copyfiles -u 1 \"./src/*.html\" \"./dist\"",
+    "build": "rimraf ./dev && babel ./src -d ./dev && npm run bundle",
+    "dev": "nodemon -w src --exec \"babel-node src\"",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Muszek1996/GraWZycie.git"
+  },
+  "author": "Jakub Mucha",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Muszek1996/GraWZycie/issues"
+  },
+  "homepage": "https://github.com/Muszek1996/GraWZycie#readme"
+}

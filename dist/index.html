@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Automaty Komórkowe</title>
+    <script src="bundle.js"></script>
+</head>
+<body>
+<div>
+
+    Rule:<select id="InitState" onchange="resetCounter();start()">
+    <option value="jednorodne" selected="selected">jednorodne</option>
+    <option value="promien">promien</option>
+    <option value="losowe">losowe</option>
+    <option value="wyklinanie">wyklinanie</option>
+</select>
+        <p id="yPar" style="display:inline">yCount:</p><input type="number" id="yCount" min="1" max="1000" value="5" onclick="start()">
+    &emsp;&emsp;<p id="xPar" style="display:inline">xCount:</p><input type="number" id="xCount" min="1" max="1000" value="5" onchange="start()">
+    &emsp;&emsp;Peroid:<input type="checkbox" id="peroid" checked = "true" onchange="start()">
+        Numbers:<input type="checkbox" id="numbers" checked = "true" onchange="setNumbers()">
+    &emsp;&emsp;yCells<input type="number" id="yCells" min="1" max="1000" value="35" onclick="start()">
+    &emsp;&emsp;xCells:<input type="number" id="xCells" min="1" max="1000" value="55" onchange="start()">
+    &emsp;&emsp;SpeedMultiplier:<input type="number" id="speedMultiplier" min="1" max="25" value="1" onchange="run();run()">
+    <button id="startBtn" style="float: right;font-size: x-large" onclick="run()">Start</button>
+</div>
+<div>
+    <canvas id="workingCanvas" width="100%" height="600" style="border:1px solid #d3d3d3"></canvas>
+</div>
+</body>
+</html>
