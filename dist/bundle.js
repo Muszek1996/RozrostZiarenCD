@@ -22,31 +22,87 @@ var Board = exports.Board = function () {
 
         _classCallCheck(this, Board);
 
-        this.xCells = xCells;
-        this.yCells = yCells;
-        this.cellSize = cellSize;
-        this.cellsArray = Array(yCells).fill(0).map(function (line, yIndex) {
+        window.board = this;
+        window.board.xCells = xCells;
+        window.board.yCells = yCells;
+        window.board.cellSize = cellSize;
+
+        window.cellsArray = Array(yCells).fill(0).map(function (line, yIndex) {
             return Array(xCells).fill(0).map(function (cell, xIndex) {
-                return new _Cell.Cell(xIndex, yIndex, 0);
+                return new _Cell.Cell(xIndex + 0.25 + Math.random() / 2, yIndex + 0.25 + Math.random() / 2, 0);
             });
         });
-        this.cellsArray.forEach(function (line, y, linesArray) {
+        window.cellsArray.forEach(function (line, y, linesArray) {
             line.forEach(function (cell, x, rowArray) {
-                if (window.periodity) {
-                    cell.neighbours.left = rowArray[mod(x - 1, rowArray.length)];
-                    cell.neighbours.right = rowArray[mod(x + 1, rowArray.length)];
-                    cell.neighbours.top = linesArray[mod(y - 1, linesArray.length)][x];
-                    cell.neighbours.bottom = linesArray[mod(y + 1, linesArray.length)][x];
-                } else {
-                    cell.neighbours.left = x > 0 ? rowArray[x - 1] : { "val": 0 };
-                    cell.neighbours.right = x < rowArray.length - 1 ? rowArray[x + 1] : { "val": 0 };
-                    cell.neighbours.top = y > 0 ? linesArray[y - 1][x] : { "val": 0 };
-                    cell.neighbours.bottom = y < linesArray.length - 1 ? linesArray[y + 1][x] : { "val": 0 };
+
+                var neightbourhood = document.getElementById("NeighbourState").options[document.getElementById("NeighbourState").selectedIndex].value;
+
+                switch (neightbourhood) {
+                    case "Von Neumann":
+                        {
+                            cell.neighbours = cell.getSquareNeighbourhood(1).circularNeighbours.filter(function (nb) {
+                                return Math.trunc(nb.x) === Math.trunc(cell.x) || Math.trunc(nb.y) === Math.trunc(cell.y);
+                            });
+                            if (cell.val > 0) cell.neighbours.forEach(function (nb) {
+                                return nb.drawDot("#C0FF33");
+                            });
+                        }
+                        break;
+                    case "Moore":
+                        cell.neighbours = cell.getSquareNeighbourhood(1).circularNeighbours;
+
+                        break;
+                    case "Pentagonalne":
+                        var neighbours = cell.getSquareNeighbourhood(1).circularNeighbours;
+
+                        var random = window.pentagon || Math.random() * 4 + 1;
+
+                        neighbours = neighbours.filter(function (nb, i) {
+                            var lottery = [i === 0 || i === 3 || i === 5 || i === 1 || i === 6, i === 2 || i === 4 || i === 7 || i === 1 || i === 6, i === 0 || i === 1 || i === 2 || i === 3 || i === 4, i === 5 || i === 6 || i === 7 || i === 3 || i === 4];
+                            return lottery[Math.trunc(random) - 1];
+                        });
+
+                        cell.neighbours = neighbours;
+                        break;
+                    case "Heksagonalne":
+                        {
+                            var _neighbours = cell.getSquareNeighbourhood(1).circularNeighbours;
+                            var dir = window.pentagon;
+
+                            if (window.pentagon === null) {
+                                dir = Math.trunc(Math.random() + 0.5) + 1;
+                            }
+
+                            if (dir === 1) {
+                                _neighbours = _neighbours.filter(function (nb, i) {
+                                    return i === 1 || i === 2 || i === 3 || i === 4 || i === 5 || i === 6;
+                                });
+                            } else if (dir === 2) {
+                                _neighbours = _neighbours.filter(function (nb, i) {
+                                    return i === 0 || i === 1 || i === 3 || i === 4 || i === 6 || i === 7;
+                                });
+                            }
+                            cell.neighbours = _neighbours;
+                        }
+                        break;
+                    case "Promien":
+                        {
+
+                            var nbours = cell.getCircularNeighbourhood(window.radiusVal);
+
+                            if (cell.val > 0) {
+                                nbours.forEach(function (nb) {
+                                    return nb.drawDot("#C0FF33");
+                                });
+                                cell.drawNeighbourhood(window.radiusVal, 1);
+                            }
+
+                            cell.neighbours = nbours;
+                        }
+                        break;
                 }
             });
         });
-
-        // console.log(this.cellsArray);
     }
 
     _createClass(Board, [{
@@ -57,13 +113,13 @@ var Board = exports.Board = function () {
             var width = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : window.canvas.width;
             var height = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : window.canvas.height;
 
-            this.cellsArray.forEach(function (line, yCells) {
+            window.cellsArray.forEach(function (line, yCells) {
                 var y = yCells * _this.cellSize;
                 ctx.moveTo(0, y);
                 ctx.lineTo(width, y);
             });
 
-            this.cellsArray[0].forEach(function (column, xCells) {
+            window.cellsArray[0].forEach(function (column, xCells) {
                 var x = xCells * _this.cellSize;
                 ctx.moveTo(x, 0);
                 ctx.lineTo(x, height);
@@ -91,16 +147,27 @@ var mod = function mod(x, n) {
 }; //modulo func for negative nbs;
 
 window.counter = 1;
+window.max = Number.MIN_VALUE;
+window.min = Number.MAX_VALUE;
+
+var dK = function dK(cellA, cellB) {
+    return cellA.val === cellB.val;
+};
+
+var probability = function probability(deltaE, kt) {
+    if (deltaE <= 0) return 1;else Math.exp(-(deltaE / kt));
+};
 
 var Cell = exports.Cell = function () {
     function Cell(x, y, val) {
         _classCallCheck(this, Cell);
 
-        this.neighbours = {};
         this.x = x;
         this.y = y;
         this.val = val;
-        this.setColor();
+        this.neighbours = [];
+        this.color = null;
+        this.energy = null;
     }
 
     _createClass(Cell, [{
@@ -109,16 +176,218 @@ var Cell = exports.Cell = function () {
             return this.val;
         }
     }, {
-        key: "setColor",
-        value: function setColor() {
-            if (this.val == 0) this.color = "#ffffff";else this.color = "hsl(" + this.val * 29 % 360 + ", 75%, 50%)";
+        key: "updateColor",
+        value: function updateColor() {
+            var color = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : null;
+
+            if (this.val == 0) this.color = color || "#ffffff";else this.color = color || "hsl(" + this.val * 29 % 360 + ", 75%, 50%)";
         }
     }, {
         key: "click",
         value: function click() {
             this.val = window.counter++;
-            this.setColor();
+            this.updateColor();
             this.drawCell();
+            return this;
+        }
+    }, {
+        key: "getEnergy",
+        value: function getEnergy() {
+            var val = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : this.val;
+
+            var energy = 0;
+
+            this.neighbours.forEach(function (nb) {
+                energy += 1 - dK({ "val": val }, nb);
+            });
+            var J = 1.0; //Energia granicy ziarna;
+            energy *= J;
+
+            if (energy > window.max) window.max = energy;
+            if (energy < window.min) window.min = energy;
+
+            return energy;
+        }
+    }, {
+        key: "deltaEnergy",
+        value: function deltaEnergy() {
+            var eBefore = this.getEnergy();
+
+            var newVal = this.neighbours[Math.trunc(Math.random() * this.neighbours.length)].val;
+
+            var eAfter = this.getEnergy(newVal);
+
+            return { "delta": eAfter - eBefore, "hisVal": newVal };
+        }
+    }, {
+        key: "growMC",
+        value: function growMC() {
+            var dE = this.deltaEnergy();
+            var p = probability(dE.delta, -6); //kt stała <0.1 -6>;
+            if (p > Math.random()) return dE.hisVal;
+            return this.val;
+        }
+    }, {
+        key: "isInCircle",
+        value: function isInCircle(cell, radius) {
+            var dist = Math.sqrt(Math.pow(this.x - cell.x, 2) + Math.pow(this.y - cell.y, 2));
+            if (dist < radius) {
+                //Meet diameter
+                if (dist > 0) return true;
+            }
+            return false;
+        }
+    }, {
+        key: "getSquareNeighbourhood",
+        value: function getSquareNeighbourhood(distance) {
+            //param{distance} = a/2 (half of side)
+            var circularNeighbours = [];
+            var fakeIndexes = [];
+            //console.log(window.cellsArray);
+            for (var y = Math.trunc(this.y) - distance; y <= Math.trunc(this.y) + distance; y++) {
+                //square neighbourhood (MAX indexes)
+                for (var x = Math.trunc(this.x) - distance; x <= Math.trunc(this.x) + distance; x++) {
+                    if (Math.trunc(this.y) === y && Math.trunc(this.x) === x) continue; //ignore itself
+                    var cell = null;
+                    try {
+                        if (window.periodity) {
+                            cell = window.cellsArray[mod(y, window.board.yCells)][mod(x, window.board.xCells)];
+                        } else {
+                            if (x >= 0 && x < window.board.xCells && y >= 0 && y < window.board.yCells) cell = window.cellsArray[y][x];
+                        }
+
+                        fakeIndexes.push({ "x": x, "y": y });
+                    } catch (e) {
+                        //console.info("neighbour not found probably peroidity off and cell beyond board");
+                        //console.error(e);
+                    }
+                    if (cell) circularNeighbours.push(cell);
+                }
+            }
+            return { circularNeighbours: circularNeighbours, fakeIndexes: fakeIndexes };
+        } //getsSquare neighbourhood with distance of param{distance}
+
+    }, {
+        key: "drawSquareNeighbourhood",
+        value: function drawSquareNeighbourhood(distance) {
+            var color = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : "#ffdd00";
+
+            this.getSquareNeighbourhood(distance).circularNeighbours.forEach(function (c) {
+                return c.drawDot(color);
+            });
+        }
+    }, {
+        key: "getCircularNeighbourhood",
+        value: function getCircularNeighbourhood(radius) {
+            var _this = this;
+
+            var circNeigbours = [];
+            var potentialNeighbours = this.getSquareNeighbourhood(radius);
+
+            if (window.periodity) {
+                potentialNeighbours.fakeIndexes.forEach(function (val, index) {
+                    var cell = potentialNeighbours.circularNeighbours[index];
+                    var xShift = cell.x - Math.trunc(cell.x);
+                    var yShift = cell.y - Math.trunc(cell.y);
+                    if (_this.isInCircle({ "x": val.x + xShift, "y": val.y + yShift }, radius)) circNeigbours.push(cell);
+                });
+            } else {
+                potentialNeighbours.circularNeighbours.forEach(function (cell) {
+                    var xShift = cell.x - Math.trunc(cell.x);
+                    var yShift = cell.y - Math.trunc(cell.y);
+                    if (_this.isInCircle({ "x": cell.x + xShift, "y": cell.y + yShift }, radius)) circNeigbours.push(cell);
+                });
+            }
+
+            return circNeigbours;
+        }
+    }, {
+        key: "drawCircularNeighbourhood",
+        value: function drawCircularNeighbourhood(diameter) {
+            var color = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : "#fb8f00";
+
+            this.getCircularNeighbourhood(diameter).forEach(function (e) {
+                return e.drawDot(color);
+            });
+        }
+    }, {
+        key: "drawNeighbourhood",
+        value: function drawNeighbourhood(radius) {
+            var drawCircle = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 1;
+            var color1 = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : "#aae5ff";
+            var color2 = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : "#0300fc";
+
+            if (window.dots) this.drawSquareNeighbourhood(radius, color1);
+            this.drawCircularNeighbourhood(radius, color2);
+            var size = window.gridSize;
+            var scaledRadius = radius * size;
+            if (drawCircle) {
+                ctx.beginPath();
+                ctx.strokeStyle = this.color;
+                ctx.arc(this.x * size, this.y * size, scaledRadius, 0, 2 * Math.PI);
+                ctx.stroke();
+
+                if (window.periodity) {
+                    var boardW = window.board.xCells * size;
+                    var boardH = window.board.yCells * size;
+                    for (var X = -boardW; X <= boardW; X += boardW) {
+                        for (var Y = -boardH; Y <= boardH; Y += boardH) {
+                            ctx.beginPath();
+                            var pointX = this.x * size + X;
+                            var pointY = this.y * size + Y;
+                            ctx.arc(pointX, pointY, scaledRadius, 0, 2 * Math.PI);
+                            ctx.stroke();
+                        }
+                    }
+                } //teleportedCircles;)
+            }
+        }
+    }, {
+        key: "drawDot",
+        value: function drawDot() {
+            var color = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : "#ffffff";
+
+            var size = window.gridSize;
+            ctx.globalAlpha = 0.3;
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(this.x * size, this.y * size, size / 4, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.restore();
+        }
+    }, {
+        key: "drawNumber",
+        value: function drawNumber() {
+            var val = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : null;
+            var color = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : "#3f3f3f";
+
+            var numb = val || this.val;
+
+            var size = window.gridSize;
+            ctx.font = Math.round(size * 0.5).toString() + "px Arial";
+            ctx.fillStyle = color;
+            ctx.textAlign = "center";
+            ctx.fillText(numb.toString(), Math.trunc(this.x) * size + size / 2, Math.trunc(this.y) * size + size / 2);
+        }
+    }, {
+        key: "drawEnergy",
+        value: function drawEnergy() {
+            this.energy = this.getEnergy();
+
+            var size = window.gridSize;
+            ctx.globalAlpha = 1;
+            var scale = function scale(num, in_min, in_max, out_min, out_max) {
+                return (num - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+            };
+            var brightness = scale(this.energy, window.min, window.max, 75, 100);
+
+            ctx.fillStyle = "hsl(" + 0 + ", 75%, " + (100 - brightness) * 4 + "%)";
+            ctx.fillRect(Math.trunc(this.x) * size, Math.trunc(this.y) * size, size, size);
+
+            if (window.dots) this.drawDot();
+
+            if (window.numbers) this.drawNumber(this.energy);
+            ctx.restore();
             return this;
         }
     }, {
@@ -127,35 +396,35 @@ var Cell = exports.Cell = function () {
             var size = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : window.gridSize;
             var ctx = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : window.ctx;
 
-            // console.log(this);
+            ctx.globalAlpha = 1;
             ctx.fillStyle = this.color;
-            ctx.fillRect(this.x * size, this.y * size, size, size);
-            if (window.numbers) {
-                ctx.font = Math.round(size * 0.5).toString() + "px Arial";
-                ctx.fillStyle = "black";
-                ctx.textAlign = "center";
-                ctx.fillText(this.val.toString(), this.x * size + size / 2, this.y * size + size / 2);
-            }
+            ctx.fillRect(Math.trunc(this.x) * size, Math.trunc(this.y) * size, size, size);
+
+            if (window.dots) this.drawDot();
+
+            if (window.numbers) this.drawNumber();
+            ctx.restore();
             return this;
         }
     }, {
         key: "nextTourValue",
         value: function nextTourValue() {
-            var _this = this;
-
-            var neighbours = [];
-            Object.keys(this.neighbours).forEach(function (i) {
-                var value = _this.neighbours[i].val;
-                if (value != 0) neighbours.push(value);
+            var dominatingNeighbours = [];
+            this.neighbours.forEach(function (i) {
+                var value = i.val;
+                if (value !== 0) dominatingNeighbours.push(value);
             });
+            //console.log(dominatingNeighbours);
 
-            var val = neighbours.reduce(function (a, b, i, arr) {
+            //console.log(dominatingNeighbours);
+            var val = dominatingNeighbours.reduce(function (a, b, i, arr) {
                 return arr.filter(function (v) {
                     return v === a;
                 }).length >= arr.filter(function (v) {
                     return v === b;
                 }).length ? a : b;
             }, null);
+            if (this.val > 0) return this.val;
 
             return val ? val : 0;
         }
@@ -173,6 +442,7 @@ var _Cell = require("./Cell");
 var _Board = require("./Board");
 
 window.start = function () {
+    console.log("START!!");
     window.xCells = document.getElementById("xCells").valueAsNumber;
     window.yCells = document.getElementById("yCells").valueAsNumber;
     window.yCount = document.getElementById("yCount").valueAsNumber;
@@ -184,6 +454,9 @@ window.start = function () {
     window.canvas.height = yCells * window.gridSize;
     window.setPeroidity();
     window.setNumbers();
+    window.setDots();
+    window.generated = false;
+    window.updatePentagon();
     window.speed = 1000 / document.getElementById("speedMultiplier").valueAsNumber;
 
     window.board = new _Board.Board(window.xCells, window.yCells, window.gridSize);
@@ -201,28 +474,108 @@ window.setNumbers = function () {
     window.numbers = document.getElementById("numbers").checked;
 };
 
+window.handleEnergyButton = function () {
+    window.energyShow = document.getElementById('Energy').checked;
+
+    window.cellsArray.forEach(function (line, y) {
+        return line.forEach(function (cell, x) {
+            if (window.energyShow === true) {
+                window.cellsArray[y][x].drawEnergy();
+            } else {
+                window.cellsArray[y][x].updateColor();
+                window.cellsArray[y][x].drawCell();
+            }
+        });
+    });
+};
+
+window.handleIterations = function () {
+    window.iterations = document.getElementById('iterations').valueAsNumber;
+};
+
+window.setDots = function () {
+    window.dots = document.getElementById("dots").checked;
+};
+
+window.updateNeigbourhood = function () {
+    resetCounter();
+    start();
+    document.getElementById('Pentagon').style.display = 'none';document.getElementById('pentagonP').innerHTML = '';
+    document.getElementById('radius').style.display = 'none';document.getElementById('radiusP').innerHTML = '';
+    if (document.getElementById('NeighbourState').options[document.getElementById('NeighbourState').selectedIndex].value == 'Pentagonalne') {
+        document.getElementById('Pentagon').style.display = 'inline';
+        document.getElementById('pentagonP').innerHTML = 'Pentagonalne:';
+        document.getElementById('Gora').disabled = false;
+        document.getElementById('Dol').disabled = false;
+    } else if (document.getElementById('NeighbourState').options[document.getElementById('NeighbourState').selectedIndex].value == 'Heksagonalne') {
+        document.getElementById('Gora').disabled = true;
+        document.getElementById('Dol').disabled = true;
+        document.getElementById('Pentagon').style.display = 'inline';
+        document.getElementById('pentagonP').innerHTML = 'Pentagonalne:';
+    } else if (document.getElementById('NeighbourState').options[document.getElementById('NeighbourState').selectedIndex].value == 'Promien') {
+        document.getElementById('radius').style.display = 'inline';
+        document.getElementById('radiusP').innerHTML = 'Promien:';
+    }
+};
+
+window.updatePentagon = function () {
+    switch (document.getElementById('Pentagon').options[document.getElementById('Pentagon').selectedIndex].value) {
+        case "Losowe":
+            window.pentagon = null;
+            break;
+        case "Lewe":
+            window.pentagon = 1;
+            break;
+        case "Prawe":
+            window.pentagon = 2;
+            break;
+        case "Góra":
+            window.pentagon = 3;
+            break;
+        case "Dół":
+            window.pentagon = 4;
+            break;
+
+    }
+};
+
 var game;
 
 window.run = function () {
-    if (!game) {
+    if (!game && !generated) {
         game = setInterval(function () {
-            var newVals = window.board.cellsArray.map(function (line, yIndex) {
+            var newVals = window.cellsArray.map(function (line, yIndex) {
                 return line.map(function (cell, xIndex) {
                     return cell.nextTourValue();
                 });
             });
             //console.log(newVals);
-            window.board.cellsArray.forEach(function (line, y) {
+            var conti = false;
+            window.cellsArray.forEach(function (line, y) {
                 return line.forEach(function (cell, x) {
-                    if (newVals[y][x] != 0 && cell.val == 0) cell.val = newVals[y][x];
-                    cell.setColor();
-                    cell.drawCell();
+                    if (window.cellsArray[y][x].val !== newVals[y][x]) conti = true;
+                    if (newVals[y][x] > 0 && window.cellsArray[y][x].val == 0) window.cellsArray[y][x].val = newVals[y][x];
+                    if (window.energyShow === true) {
+                        window.cellsArray[y][x].drawEnergy();
+                    } else {
+                        window.cellsArray[y][x].updateColor();
+                        window.cellsArray[y][x].drawCell();
+                    }
                 });
             });
+            if (conti === false) {
+                window.generated = true;
+                window.mcGrowth();
+                clearInterval(game);
+                game = null;
+                document.getElementById("startBtn").textContent = "Start";
+            }
+
             // board.drawGrid()
         }, 1000 / document.getElementById("speedMultiplier").valueAsNumber);
         document.getElementById("startBtn").textContent = "STOP";
     } else {
+        window.mcGrowth();
         clearInterval(game);
         game = null;
         document.getElementById("startBtn").textContent = "Start";
@@ -237,7 +590,6 @@ window.initState = function (i, j) {
     var type = document.getElementById("InitState").options[document.getElementById("InitState").selectedIndex].value;
     window.yCount = document.getElementById("yCount").valueAsNumber;
     window.xCount = document.getElementById("xCount").valueAsNumber;
-
     switch (type) {
         case "jednorodne":
             {
@@ -249,16 +601,16 @@ window.initState = function (i, j) {
                 document.getElementById("xPar").innerHTML = "xCount:";
                 var yC = window.yCount;
                 var xC = window.xCount;
-                var yL = window.board.cellsArray.length;
-                var xL = window.board.cellsArray[0].length;
+                var yL = window.cellsArray.length;
+                var xL = window.cellsArray[0].length;
                 var yParts = yL / (yC + 1);
                 var xParts = xL / (xC + 1);
                 for (var _i = 1; _i <= yC; _i++) {
                     for (var _j = 1; _j <= xC; _j++) {
-                        window.board.cellsArray[Math.floor(yParts * _i)][Math.floor(xParts * _j)].click();
+                        window.cellsArray[Math.floor(yParts * _i)][Math.floor(xParts * _j)].click();
                     }
                 }
-                //console.log(window.board.cellsArray)
+                //console.log(window.cellsArray)
             }
             break;
         case "promien":
@@ -277,31 +629,33 @@ window.initState = function (i, j) {
                 var _j2 = 0;
 
                 var _loop = function _loop(_i3) {
-                    if (++_j2 > 1000) {
+                    if (++_j2 > 100) {
                         alert("probably impossible");
+                        return "break";
                         _i3 = xCount;
                         return {
                             v: void 0
                         };
                     } else {
-                        var cell = window.board.cellsArray[Math.round(Math.random() * window.board.cellsArray.length) % window.board.cellsArray.length][Math.round(Math.random() * window.board.cellsArray[0].length) % window.board.cellsArray[0].length];
+                        var cell = window.cellsArray[Math.round(Math.random() * window.cellsArray.length) % window.cellsArray.length][Math.round(Math.random() * window.cellsArray[0].length) % window.cellsArray[0].length];
                         var val = true;
-
                         cells.forEach(function (circleCell) {
                             var dist = Math.sqrt(Math.pow(cell.x * window.gridSize - circleCell.x * window.gridSize, 2) + Math.pow(cell.y * window.gridSize - circleCell.y * window.gridSize, 2));
-                            ctx.beginPath();
-                            ctx.moveTo(cell.x * window.gridSize, cell.y * window.gridSize);
-                            ctx.lineTo(circleCell.x * window.gridSize, circleCell.y * window.gridSize);
-                            ctx.stroke();
-                            if (dist < yCount * window.gridSize / 1.95) {
+
+                            if (dist < yCount * window.gridSize) {
                                 console.log(dist + "<" + yCount * window.gridSize / 2);
-                                --_i3;
+                                _i3--;
                                 val = false;
+                            } else {
+                                ctx.beginPath();
+                                ctx.moveTo(cell.x * window.gridSize, cell.y * window.gridSize);
+                                ctx.lineTo(circleCell.x * window.gridSize, circleCell.y * window.gridSize);
+                                ctx.stroke();
                             }
                         });
                         if (val) {
                             ctx.beginPath();
-                            ctx.arc(cell.x * window.gridSize + window.gridSize / 2, cell.y * gridSize + window.gridSize / 2, yCount * gridSize / 1.95, 0, 2 * Math.PI);
+                            ctx.arc(cell.x * window.gridSize, cell.y * gridSize, yCount * gridSize, 0, 2 * Math.PI);
                             ctx.stroke();
                             cells.push(cell);
                         }
@@ -309,14 +663,22 @@ window.initState = function (i, j) {
                     _i2 = _i3;
                 };
 
-                for (var _i2 = 0; _i2 < xCount; _i2++) {
+                _loop2: for (var _i2 = 0; _i2 < xCount; ++_i2) {
                     var _ret = _loop(_i2);
 
-                    if ((typeof _ret === "undefined" ? "undefined" : _typeof(_ret)) === "object") return _ret.v;
+                    switch (_ret) {
+                        case "break":
+                            break _loop2;
+
+                        default:
+                            if ((typeof _ret === "undefined" ? "undefined" : _typeof(_ret)) === "object") return _ret.v;
+                    }
                 }
+
                 cells.forEach(function (cell) {
                     return cell.click();
                 });
+                document.getElementById("textBox").innerHTML = "Udało się wygenerować:" + cells.length;
             }
             break;
         case "losowe":
@@ -335,7 +697,7 @@ window.initState = function (i, j) {
                     break;
                 }
                 do {
-                    var cell = window.board.cellsArray[Math.round(Math.random() * window.board.cellsArray.length) % window.board.cellsArray.length][Math.round(Math.random() * window.board.cellsArray[0].length) % window.board.cellsArray[0].length];
+                    var cell = window.cellsArray[Math.round(Math.random() * window.cellsArray.length) % window.cellsArray.length][Math.round(Math.random() * window.cellsArray[0].length) % window.cellsArray[0].length];
                     if (cell.val == 0) {
                         cell.click();
                         _i4++;
@@ -350,10 +712,27 @@ window.initState = function (i, j) {
                 document.getElementById("yCount").hidden = true;
                 document.getElementById("yPar").style.display = "none";
                 if (i != null && j != null) {
-                    window.board.cellsArray[i][j].click();
+                    window.cellsArray[i][j].click();
+                    console.log(window.cellsArray[i][j]);
+                    //window.cellsArray[i][j].drawNeighbourhood(1);
                 }
             }
     }
+
+    window.cellsArray.forEach(function (l) {
+        return l.forEach(function (c) {
+            if (c.val > 0) {
+                if (c.neighbours !== undefined) {
+                    if (document.getElementById("NeighbourState").options[document.getElementById("NeighbourState").selectedIndex].value === "Promien") {
+                        c.drawNeighbourhood(window.radiusVal, 1);
+                    }
+                    c.neighbours.forEach(function (n) {
+                        return n.drawDot(c.color);
+                    });
+                }
+            }
+        });
+    });
 };
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -363,9 +742,27 @@ document.addEventListener("DOMContentLoaded", function () {
         var xClickIndex = Math.floor(getCursorPosition(window.canvas, event)[0] / window.gridSize);
         var yClickIndex = Math.floor(getCursorPosition(window.canvas, event)[1] / window.gridSize);
         // console.log(`x:${xClickIndex} y:${yClickIndex}`);
-        // console.log(window.board.cellsArray);
+        // console.log(window.cellsArray);
         if (document.getElementById("InitState").options[document.getElementById("InitState").selectedIndex].value == "wyklinanie") window.initState(yClickIndex, xClickIndex);
-        //window.board.cellsArray[yClickIndex][xClickIndex].click().getNeighbourCount();
+    }, false);
+
+    document.getElementById("workingCanvas").addEventListener('contextmenu', function (event) {
+        event.preventDefault();
+        var xClickIndex = Math.floor(getCursorPosition(window.canvas, event)[0] / window.gridSize);
+        var yClickIndex = Math.floor(getCursorPosition(window.canvas, event)[1] / window.gridSize);
+        // console.log(`x:${xClickIndex} y:${yClickIndex}`);
+        // console.log(window.cellsArray);
+
+        console.log(window.cellsArray[yClickIndex][xClickIndex].getEnergy());
+    }, false);
+
+    document.getElementById("workingCanvas").addEventListener('auxclick', function (event) {
+        event.preventDefault();
+        var xClickIndex = Math.floor(getCursorPosition(window.canvas, event)[0] / window.gridSize);
+        var yClickIndex = Math.floor(getCursorPosition(window.canvas, event)[1] / window.gridSize);
+        // console.log(`x:${xClickIndex} y:${yClickIndex}`);
+        // console.log(window.cellsArray);
+        console.log(window.lcc = window.cellsArray[yClickIndex][xClickIndex]);
     }, false);
 });
 
@@ -378,4 +775,46 @@ function getCursorPosition(canvas, event) {
 
     return [x, y];
 }
+
+window.mcGrowth = function () {
+    var iterations = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : window.iterations;
+
+
+    var max = Number.MIN_VALUE;
+    var min = Number.MAX_VALUE;
+
+    window.energyArray = new Array(window.board.yCells).fill(null).map(function () {
+        return new Array(window.board.xCells).fill(null);
+    });
+    var cells = [];
+    cellsArray.forEach(function (line, y) {
+        return line.forEach(function (cell, x) {
+            energyArray[y][x] = new _Cell.Cell(cell.x, cell.y, null);
+            cells.push(cell);
+        });
+    });
+
+    var _loop3 = function _loop3(i) {
+        setTimeout(function () {
+            console.log("ITERATION" + i);
+            cells.sort(function () {
+                return Math.random() - 0.5;
+            });
+            cells.forEach(function (cell) {
+                var newVal = cell.growMC();
+                if (newVal > max) max = newVal;
+                if (newVal < min) min = newVal;
+
+                cellsArray[Math.trunc(cell.y)][Math.trunc(cell.x)].val = newVal;
+            });
+            handleEnergyButton();
+        }, 1000 / document.getElementById("speedMultiplier").valueAsNumber);
+    };
+
+    for (var i = 0; i < iterations; i++) {
+        _loop3(i);
+    }
+
+    document.getElementById("startBtn").textContent = "START";
+};
 },{"./Board":1,"./Cell":2}]},{},[3]);

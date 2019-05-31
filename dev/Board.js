@@ -21,31 +21,87 @@ var Board = exports.Board = function () {
 
         _classCallCheck(this, Board);
 
-        this.xCells = xCells;
-        this.yCells = yCells;
-        this.cellSize = cellSize;
-        this.cellsArray = Array(yCells).fill(0).map(function (line, yIndex) {
+        window.board = this;
+        window.board.xCells = xCells;
+        window.board.yCells = yCells;
+        window.board.cellSize = cellSize;
+
+        window.cellsArray = Array(yCells).fill(0).map(function (line, yIndex) {
             return Array(xCells).fill(0).map(function (cell, xIndex) {
-                return new _Cell.Cell(xIndex, yIndex, 0);
+                return new _Cell.Cell(xIndex + 0.25 + Math.random() / 2, yIndex + 0.25 + Math.random() / 2, 0);
             });
         });
-        this.cellsArray.forEach(function (line, y, linesArray) {
+        window.cellsArray.forEach(function (line, y, linesArray) {
             line.forEach(function (cell, x, rowArray) {
-                if (window.periodity) {
-                    cell.neighbours.left = rowArray[mod(x - 1, rowArray.length)];
-                    cell.neighbours.right = rowArray[mod(x + 1, rowArray.length)];
-                    cell.neighbours.top = linesArray[mod(y - 1, linesArray.length)][x];
-                    cell.neighbours.bottom = linesArray[mod(y + 1, linesArray.length)][x];
-                } else {
-                    cell.neighbours.left = x > 0 ? rowArray[x - 1] : { "val": 0 };
-                    cell.neighbours.right = x < rowArray.length - 1 ? rowArray[x + 1] : { "val": 0 };
-                    cell.neighbours.top = y > 0 ? linesArray[y - 1][x] : { "val": 0 };
-                    cell.neighbours.bottom = y < linesArray.length - 1 ? linesArray[y + 1][x] : { "val": 0 };
+
+                var neightbourhood = document.getElementById("NeighbourState").options[document.getElementById("NeighbourState").selectedIndex].value;
+
+                switch (neightbourhood) {
+                    case "Von Neumann":
+                        {
+                            cell.neighbours = cell.getSquareNeighbourhood(1).circularNeighbours.filter(function (nb) {
+                                return Math.trunc(nb.x) === Math.trunc(cell.x) || Math.trunc(nb.y) === Math.trunc(cell.y);
+                            });
+                            if (cell.val > 0) cell.neighbours.forEach(function (nb) {
+                                return nb.drawDot("#C0FF33");
+                            });
+                        }
+                        break;
+                    case "Moore":
+                        cell.neighbours = cell.getSquareNeighbourhood(1).circularNeighbours;
+
+                        break;
+                    case "Pentagonalne":
+                        var neighbours = cell.getSquareNeighbourhood(1).circularNeighbours;
+
+                        var random = window.pentagon || Math.random() * 4 + 1;
+
+                        neighbours = neighbours.filter(function (nb, i) {
+                            var lottery = [i === 0 || i === 3 || i === 5 || i === 1 || i === 6, i === 2 || i === 4 || i === 7 || i === 1 || i === 6, i === 0 || i === 1 || i === 2 || i === 3 || i === 4, i === 5 || i === 6 || i === 7 || i === 3 || i === 4];
+                            return lottery[Math.trunc(random) - 1];
+                        });
+
+                        cell.neighbours = neighbours;
+                        break;
+                    case "Heksagonalne":
+                        {
+                            var _neighbours = cell.getSquareNeighbourhood(1).circularNeighbours;
+                            var dir = window.pentagon;
+
+                            if (window.pentagon === null) {
+                                dir = Math.trunc(Math.random() + 0.5) + 1;
+                            }
+
+                            if (dir === 1) {
+                                _neighbours = _neighbours.filter(function (nb, i) {
+                                    return i === 1 || i === 2 || i === 3 || i === 4 || i === 5 || i === 6;
+                                });
+                            } else if (dir === 2) {
+                                _neighbours = _neighbours.filter(function (nb, i) {
+                                    return i === 0 || i === 1 || i === 3 || i === 4 || i === 6 || i === 7;
+                                });
+                            }
+                            cell.neighbours = _neighbours;
+                        }
+                        break;
+                    case "Promien":
+                        {
+
+                            var nbours = cell.getCircularNeighbourhood(window.radiusVal);
+
+                            if (cell.val > 0) {
+                                nbours.forEach(function (nb) {
+                                    return nb.drawDot("#C0FF33");
+                                });
+                                cell.drawNeighbourhood(window.radiusVal, 1);
+                            }
+
+                            cell.neighbours = nbours;
+                        }
+                        break;
                 }
             });
         });
-
-        // console.log(this.cellsArray);
     }
 
     _createClass(Board, [{
@@ -56,13 +112,13 @@ var Board = exports.Board = function () {
             var width = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : window.canvas.width;
             var height = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : window.canvas.height;
 
-            this.cellsArray.forEach(function (line, yCells) {
+            window.cellsArray.forEach(function (line, yCells) {
                 var y = yCells * _this.cellSize;
                 ctx.moveTo(0, y);
                 ctx.lineTo(width, y);
             });
 
-            this.cellsArray[0].forEach(function (column, xCells) {
+            window.cellsArray[0].forEach(function (column, xCells) {
                 var x = xCells * _this.cellSize;
                 ctx.moveTo(x, 0);
                 ctx.lineTo(x, height);

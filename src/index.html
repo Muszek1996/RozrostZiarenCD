@@ -8,23 +8,47 @@
 <body>
 <div>
 
-    Rule:<select id="InitState" onchange="resetCounter();start()">
+    Zarodkowanie:<select id="InitState" onchange="resetCounter();start()">
     <option value="jednorodne" selected="selected">jednorodne</option>
     <option value="promien">promien</option>
     <option value="losowe">losowe</option>
     <option value="wyklinanie">wyklinanie</option>
 </select>
+
         <p id="yPar" style="display:inline">yCount:</p><input type="number" id="yCount" min="1" max="1000" value="5" onclick="start()">
     &emsp;&emsp;<p id="xPar" style="display:inline">xCount:</p><input type="number" id="xCount" min="1" max="1000" value="5" onchange="start()">
-    &emsp;&emsp;Peroid:<input type="checkbox" id="peroid" checked = "true" onchange="start()">
-        Numbers:<input type="checkbox" id="numbers" checked = "true" onchange="setNumbers()">
-    &emsp;&emsp;yCells<input type="number" id="yCells" min="1" max="1000" value="35" onclick="start()">
-    &emsp;&emsp;xCells:<input type="number" id="xCells" min="1" max="1000" value="55" onchange="start()">
-    &emsp;&emsp;SpeedMultiplier:<input type="number" id="speedMultiplier" min="1" max="25" value="1" onchange="run();run()">
-    <button id="startBtn" style="float: right;font-size: x-large" onclick="run()">Start</button>
+    Sąsiedztwo:<select id="NeighbourState" onchange="updateNeigbourhood()">
+    <option value="Von Neumann" selected="selected">Von Neumann'a</option>
+    <option value="Moore">Moore'a</option>
+    <option value="Pentagonalne">Pentagonalne Losowe</option>
+    <option value="Heksagonalne">Heksagonalne</option>
+    <option value="Promien">Z promieniem</option>
+</select>
+    <p id="pentagonP" style="display:inline"></p><select id="Pentagon" style="display:none" onchange="updatePentagon();resetCounter();start();">
+    <option value="Losowe" selected="selected" >Losowe</option>
+    <option value="Lewe" >Lewe</option>
+    <option value="Prawe">Prawe</option>
+    <option id ="Gora" value="Góra" >Góra</option>
+    <option id ="Dol" value="Dół">Dół</option>
+</select>
+    &emsp;<p id="radiusP" style="display:inline"></p><input style="display:none" type="number" id="radius" min="1" max="1000" value="NULL" onchange="window.radiusVal = document.getElementById('radius').valueAsNumber;resetCounter();start()">
+    &emsp;&emsp;Peroid:<input type="checkbox" id="peroid" checked onchange="start()">
+        Numbers:<input type="checkbox" id="numbers" onchange="setNumbers()">
+        Dots:<input type="checkbox" id="dots" checked onchange="setDots();start()">
+    &emsp;&emsp;yCells<input type="number" id="yCells" min="1" max="1000" value="45" onclick="start()">
+    &emsp;&emsp;xCells:<input type="number" id="xCells" min="1" max="1000" value="105" onchange="start()">
+    &emsp;&emsp;SpeedMultiplier:<input type="number" id="speedMultiplier" min="1" max="25" value="5" onchange="run();run()">
+
 </div>
 <div>
     <canvas id="workingCanvas" width="100%" height="600" style="border:1px solid #d3d3d3"></canvas>
 </div>
+Energy:<input type="checkbox" id="Energy" onchange="handleEnergyButton()">
+Iterations:<input type="number" id="iterations" min="1" max="1000" value="1" onclick="handleIterations();">
+
+<p id="textBox" style="display:inline"></p>
+
+<button id="startBtn" style="float: right;font-size: x-large" onclick="run()">Start</button>
+<button id="reset" style="float: right;font-size: x-large" onclick="resetCounter();start()">RESET</button>
 </body>
 </html>

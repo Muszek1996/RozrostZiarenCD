@@ -2,41 +2,92 @@ import {Cell} from "./Cell.js"
 
 const mod = (x, n) => (x % n + n) % n; //modulo func for negative nbs;
 
-export class Board{
+export class Board {
 
-    constructor(xCells,yCells,cellSize = window.gridSize){
-        this.xCells = xCells;
-        this.yCells = yCells;
-        this.cellSize = cellSize;
-        this.cellsArray = Array(yCells).fill(0).map((line,yIndex) => Array(xCells).fill(0).map((cell,xIndex)=>new Cell(xIndex,yIndex,0)));
-        this.cellsArray.forEach((line,y,linesArray)=>{
-            line.forEach((cell,x,rowArray)=>{
-                if(window.periodity){
-                    cell.neighbours.left = rowArray[mod(x-1,rowArray.length)];
-                    cell.neighbours.right = rowArray[mod(x+1,rowArray.length)];
-                    cell.neighbours.top = linesArray[mod(y-1,linesArray.length)][x];
-                    cell.neighbours.bottom = linesArray[mod(y+1,linesArray.length)][x];
-                }else{
-                    cell.neighbours.left = (x>0)?rowArray[x-1]:{"val":0};
-                    cell.neighbours.right = (x<rowArray.length-1)?rowArray[x+1]:{"val":0};
-                    cell.neighbours.top = (y>0)?linesArray[y-1][x]:{"val":0};
-                    cell.neighbours.bottom = (y<linesArray.length-1)?linesArray[y+1][x]:{"val":0};
+    constructor(xCells, yCells, cellSize = window.gridSize) {
+        window.board = this;
+        window.board.xCells = xCells;
+        window.board.yCells = yCells;
+        window.board.cellSize = cellSize;
+
+        window.cellsArray = Array(yCells).fill(0).map((line, yIndex) => Array(xCells).fill(0).map((cell, xIndex) => new Cell(xIndex + 0.25 + Math.random() / 2, yIndex + 0.25 + Math.random() / 2, 0)));
+        window.cellsArray.forEach((line, y, linesArray) => {
+            line.forEach((cell, x, rowArray) => {
+
+                let neightbourhood = document.getElementById("NeighbourState").options[document.getElementById("NeighbourState").selectedIndex].value;
+
+                switch (neightbourhood) {
+                    case "Von Neumann": {
+                        cell.neighbours = cell.getSquareNeighbourhood(1).circularNeighbours.filter(nb => Math.trunc(nb.x) === Math.trunc(cell.x) || Math.trunc(nb.y) === Math.trunc(cell.y));
+                        if (cell.val > 0)
+                            cell.neighbours.forEach(nb => nb.drawDot("#C0FF33"));
+                    }
+                        break;
+                    case "Moore":
+                        cell.neighbours = cell.getSquareNeighbourhood(1).circularNeighbours;
+
+                        break;
+                    case "Pentagonalne":
+                        let neighbours = cell.getSquareNeighbourhood(1).circularNeighbours;
+
+
+                        let random = window.pentagon || Math.random() * 4 + 1;
+
+                        neighbours = neighbours.filter((nb, i) => {
+                            let lottery = [i === 0 || i === 3 || i === 5 || i === 1 || i === 6, i === 2 || i === 4 || i === 7 || i === 1 || i === 6, i === 0 || i === 1 || i === 2 || i === 3 || i === 4, i === 5 || i === 6 || i === 7 || i === 3 || i === 4];
+                            return lottery[Math.trunc(random) - 1];
+                        });
+
+                        cell.neighbours = neighbours;
+                        break;
+                    case "Heksagonalne": {
+                        let neighbours = cell.getSquareNeighbourhood(1).circularNeighbours;
+                        let dir = window.pentagon;
+
+                        if (window.pentagon === null) {
+                            dir = Math.trunc(Math.random() + 0.5) + 1;
+                        }
+
+                        if (dir === 1) {
+                            neighbours = neighbours.filter((nb, i) => {
+                                return i === 1 || i === 2 || i === 3 || i === 4 || i === 5 || i === 6;
+                            });
+                        } else if (dir === 2) {
+                            neighbours = neighbours.filter((nb, i) => {
+                                return i === 0 || i === 1 || i === 3 || i === 4 || i === 6 || i === 7;
+                            });
+                        }
+                        cell.neighbours = neighbours;
+
+                    }
+                        break;
+                    case "Promien": {
+
+                        let nbours = cell.getCircularNeighbourhood(window.radiusVal);
+
+                        if (cell.val > 0){
+                            nbours.forEach(nb => nb.drawDot("#C0FF33"));
+                            cell.drawNeighbourhood(window.radiusVal,1);
+                        }
+
+                        cell.neighbours =nbours;
+                    }
+                        break;
                 }
+
             })
         })
-
-        // console.log(this.cellsArray);
     }
 
     drawGrid(width = window.canvas.width, height = window.canvas.height) {
-        this.cellsArray.forEach((line,yCells)=>{
-            let y = yCells*this.cellSize;
+        window.cellsArray.forEach((line, yCells) => {
+            let y = yCells * this.cellSize;
             ctx.moveTo(0, y);
             ctx.lineTo(width, y);
         });
 
-        this.cellsArray[0].forEach((column,xCells)=>{
-            let x = xCells*this.cellSize;
+        window.cellsArray[0].forEach((column, xCells) => {
+            let x = xCells * this.cellSize;
             ctx.moveTo(x, 0);
             ctx.lineTo(x, height);
         });
