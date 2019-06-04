@@ -72,7 +72,7 @@ export class Cell{
 
     growMC(){
         let dE = this.deltaEnergy();
-        let p = probability(dE.delta,-6);   //kt stała <0.1 -6>;
+        let p = probability(dE.delta,window.kt);   //kt stała <0.1;6>;
         if(p>Math.random())return dE.hisVal;
         return this.val;
     }

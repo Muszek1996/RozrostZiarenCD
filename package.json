@@ -19,7 +19,7 @@
     "copyfiles": "^2.1.0"
   },
   "scripts": {
-    "bundle": "npm run copy && watchify \"./dev/index.js\" -o \"./dist/bundle.js\"",
+    "bundle": "npm run copy && browserify \"./dev/index.js\" -o \"./dist/bundle.js\"",
     "copy": "rimraf ./dist && copyfiles -u 1 \"./src/*.html\" \"./dist\"",
     "build": "rimraf ./dev && babel ./src -d ./dev && npm run bundle",
     "dev": "nodemon -w src --exec \"babel-node src\"",

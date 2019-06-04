@@ -223,7 +223,7 @@ var Cell = exports.Cell = function () {
         key: "growMC",
         value: function growMC() {
             var dE = this.deltaEnergy();
-            var p = probability(dE.delta, -6); //kt stała <0.1 -6>;
+            var p = probability(dE.delta, window.kt); //kt stała <0.1 -6>;
             if (p > Math.random()) return dE.hisVal;
             return this.val;
         }
