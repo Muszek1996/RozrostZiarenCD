@@ -7,7 +7,13 @@ var _Cell = require("./Cell");
 var _Board = require("./Board");
 
 window.start = function () {
+    window.max = Number.MIN_VALUE;
+    window.min = Number.MAX_VALUE;
     console.log("START!!");
+
+    window.packages = document.getElementById('packages').valueAsNumber;
+    window.xPercent = document.getElementById('x').valueAsNumber;
+
     window.xCells = document.getElementById("xCells").valueAsNumber;
     window.yCells = document.getElementById("yCells").valueAsNumber;
     window.yCount = document.getElementById("yCount").valueAsNumber;
@@ -20,6 +26,7 @@ window.start = function () {
     window.setPeroidity();
     window.setNumbers();
     window.setDots();
+    window.radiusVal = document.getElementById('radius').valueAsNumber || 2;
     window.generated = false;
     window.updatePentagon();
     window.speed = 1000 / document.getElementById("speedMultiplier").valueAsNumber;
@@ -27,6 +34,31 @@ window.start = function () {
     window.board = new _Board.Board(window.xCells, window.yCells, window.gridSize);
     window.initState();
     board.drawGrid();
+    window.criticalDensity = 4.22 * Math.pow(10, 12) / (window.xCells * window.yCells);
+};
+
+window.getDownloadableFile = function (data, filename) {
+
+    if (!data) {
+        console.error('Console.save: No data');
+        return;
+    }
+
+    if (!filename) filename = 'console.json';
+
+    if ((typeof data === "undefined" ? "undefined" : _typeof(data)) === "object") {
+        data = JSON.stringify(data, undefined, 4);
+    }
+
+    var blob = new Blob([data], { type: 'text/json' }),
+        e = document.createEvent('MouseEvents'),
+        a = document.createElement('a');
+
+    a.download = filename;
+    a.href = window.URL.createObjectURL(blob);
+    a.dataset.downloadurl = ['text/json', a.download, a.href].join(':');
+    e.initMouseEvent('click', true, false, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
+    a.dispatchEvent(e);
 };
 
 window.setPeroidity = function () {
@@ -40,12 +72,41 @@ window.setNumbers = function () {
 };
 
 window.handleEnergyButton = function () {
+    window.max = Number.MIN_VALUE;
+    window.min = Number.MAX_VALUE;
+    window.cellsArray.forEach(function (line, y, linesArray) {
+        line.forEach(function (cell, x, rowArray) {
+            var newVal = cell.getEnergy();
+            if (newVal > window.max) window.max = newVal;
+            if (newVal < window.min) window.min = newVal;
+        });
+    });
     window.energyShow = document.getElementById('Energy').checked;
 
     window.cellsArray.forEach(function (line, y) {
         return line.forEach(function (cell, x) {
             if (window.energyShow === true) {
                 window.cellsArray[y][x].drawEnergy();
+            } else {
+                window.cellsArray[y][x].updateColor();
+                window.cellsArray[y][x].drawCell();
+            }
+        });
+    });
+};
+
+window.handleDensityButton = function () {
+
+    window.densityShow = document.getElementById('Density').checked;
+
+    window.cellsArray.forEach(function (line, y) {
+        return line.forEach(function (cell, x) {
+            if (window.densityShow === true) {
+                if (cell.recrystaliseState !== null) {
+                    if (cell.recrystaliseState === true) {
+                        cell.drawCell(window.gridSize, window.ctx, "#ff0900");
+                    }
+                }
             } else {
                 window.cellsArray[y][x].updateColor();
                 window.cellsArray[y][x].drawCell();
@@ -107,6 +168,8 @@ window.updatePentagon = function () {
 var game;
 
 window.run = function () {
+    window.max = Number.MIN_VALUE;
+    window.min = Number.MAX_VALUE;
     if (!game && !generated) {
         game = setInterval(function () {
             var newVals = window.cellsArray.map(function (line, yIndex) {
@@ -130,7 +193,6 @@ window.run = function () {
             });
             if (conti === false) {
                 window.generated = true;
-                window.mcGrowth();
                 clearInterval(game);
                 game = null;
                 document.getElementById("startBtn").textContent = "Start";
@@ -140,7 +202,6 @@ window.run = function () {
         }, 1000 / document.getElementById("speedMultiplier").valueAsNumber);
         document.getElementById("startBtn").textContent = "STOP";
     } else {
-        window.mcGrowth();
         clearInterval(game);
         game = null;
         document.getElementById("startBtn").textContent = "Start";
@@ -302,6 +363,7 @@ window.initState = function (i, j) {
 
 document.addEventListener("DOMContentLoaded", function () {
     start();
+    run();
     document.getElementById("workingCanvas").addEventListener('click', function (event) {
 
         var xClickIndex = Math.floor(getCursorPosition(window.canvas, event)[0] / window.gridSize);
@@ -341,6 +403,85 @@ function getCursorPosition(canvas, event) {
     return [x, y];
 }
 
+window.dyslocation = function (timeStep, endTime) {
+    var packages = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : window.packages;
+    var xPercent = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : window.xPercent;
+    var crtiticalAvgRoDensity = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : window.criticalDensity;
+    var startTime = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : 0;
+
+    window.data = [];
+
+    var _loop3 = function _loop3(time) {
+        var timer = setTimeout(function () {
+            document.getElementById("textBox").innerHTML = "Time:" + time + "/" + endTime;
+            var deltaRo = board.getDeltaRo(time - timeStep, time);
+            var avgRoDensity = board.avgRoDensity(deltaRo);
+            var deltaRoLeft = board.giveXPercentToEachReturnRest(xPercent, deltaRo);
+
+            var packageSize = deltaRoLeft / packages;
+            console.log("Time: " + time + "/" + endTime + "  Ro:" + board.getRo(time));
+            window.data.push({ "Time": time, "ro": board.getRo(time) });
+            while (deltaRoLeft - packageSize > 0) {
+                var rand = Math.random() * 10;
+                if (rand < 8) {
+                    board.getBorderCell().obtainDyslocDensity(packageSize);
+                } else {
+                    board.getInsideCell().obtainDyslocDensity(packageSize);
+                }
+                deltaRoLeft -= packageSize;
+            }
+            {
+                var _rand = Math.random() * 10;
+                if (_rand < 8) {
+                    board.getBorderCell().obtainDyslocDensity(deltaRoLeft);
+                } else {
+                    board.getInsideCell().obtainDyslocDensity(deltaRoLeft);
+                }
+            } //give rest to random cell;
+
+            // cellsArray.forEach((line,y)=>line.forEach((cell,x)=>{
+            //     if((cell.dyslocDensity>crtiticalAvgRoDensity&& cell.getEnergy()>0)){
+            //         //console.log("gen");
+            //         cell.rx = time;
+            //         cell.recrystaliseState = true;
+            //         cell.dyslocDensity = 0;
+            //     }
+            // }));
+            // handleDensityButton();
+
+            cellsArray.forEach(function (line, y) {
+                return line.forEach(function (cell, x) {
+                    if (cell.dyslocDensity > crtiticalAvgRoDensity && cell.getEnergy() > 0) {
+                        //console.log("gen");
+                        cell.rx = time;
+                        cell.recrystaliseState = true;
+                        cell.dyslocDensity = 0;
+                    }
+                });
+            });
+            handleDensityButton();
+
+            var newVals = window.cellsArray.map(function (line, yIndex) {
+                return line.map(function (cell, xIndex) {
+                    if (cell.doNeighbourRecrystalisedAtTime(time - timeStep) && cell.isDyslocDensityOfNeighborsSmallerThanMine()) {
+                        //console.log("ne");
+                        cell.rx = time;
+                        cell.recrystaliseState = true;
+                        cell.dyslocDensity = 0;
+                    }
+                    return cell;
+                });
+            });
+
+            //window.cellsArray = newVals;
+        }, time * 5000 * (1000 / document.getElementById("speedMultiplier").valueAsNumber));
+    };
+
+    for (var time = startTime + timeStep; time <= endTime; time += timeStep) {
+        _loop3(time);
+    }
+};
+
 window.mcGrowth = function () {
     var iterations = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : window.iterations;
 
@@ -359,7 +500,7 @@ window.mcGrowth = function () {
         });
     });
 
-    var _loop3 = function _loop3(i) {
+    var _loop4 = function _loop4(i) {
         setTimeout(function () {
             console.log("ITERATION" + i);
             cells.sort(function () {
@@ -377,7 +518,7 @@ window.mcGrowth = function () {
     };
 
     for (var i = 0; i < iterations; i++) {
-        _loop3(i);
+        _loop4(i);
     }
 
     document.getElementById("startBtn").textContent = "START";

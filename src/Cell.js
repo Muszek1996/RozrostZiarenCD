@@ -23,6 +23,9 @@ export class Cell{
         this.neighbours = [];
         this.color = null;
         this.energy = null;
+        this.rx = null;
+        this.dyslocDensity = 0;
+        this.recrystaliseState = null;
     }
 
     toString(){
@@ -34,6 +37,36 @@ export class Cell{
             this.color = color||"#ffffff";
         else
             this.color =  color||"hsl(" + (this.val*29)%360 + ", 75%, 50%)";
+        return this;
+    }
+
+    obtainDyslocDensity(density){
+        if(this.dyslocDensity==null)throw new Error("shouldn't be null");
+        this.dyslocDensity += density;
+    }
+
+    doNeighbourRecrystalisedAtTime(time){
+        if(this.neighbours == null || this.neighbours.length <1) throw new Error("neighbours empty");
+        var retVal = false;
+
+        this.neighbours.forEach(nb=>{
+
+            if(nb.rx == time){
+                retVal = true;
+            }
+        });
+        return retVal;
+    }
+
+    isDyslocDensityOfNeighborsSmallerThanMine(){
+        let retval = true;
+        if(this.dyslocDensity == null) throw new Error("dysloc val null");
+        if(this.neighbours == null || this.neighbours.length <1) throw new Error("neighbours empty");
+
+        this.neighbours.forEach(nb=>{
+            if(nb.dyslocDensity>this.dyslocDensity) retval = false
+        });
+        return retval;
     }
 
     click(){
@@ -72,7 +105,7 @@ export class Cell{
 
     growMC(){
         let dE = this.deltaEnergy();
-        let p = probability(dE.delta,-6);   //kt stała <0.1 -6>;
+        let p = probability(dE.delta,window.kt);   //kt stała <0.1 -6>;
         if(p>Math.random())return dE.hisVal;
         return this.val;
     }
@@ -198,7 +231,7 @@ export class Cell{
     }
 
     drawEnergy(){
-            this.energy = this.getEnergy();
+        this.energy = this.getEnergy();
 
         let size = window.gridSize;
         ctx.globalAlpha = 1;
@@ -220,9 +253,10 @@ export class Cell{
         return this;
     }
 
-    drawCell(size = window.gridSize, ctx = window.ctx) {
+
+    drawCell(size = window.gridSize, ctx = window.ctx,color = this.color) {
         ctx.globalAlpha = 1;
-        ctx.fillStyle = this.color;
+        ctx.fillStyle = color;
         ctx.fillRect(Math.trunc(this.x)*size, Math.trunc(this.y)*size, size, size);
 
         if(window.dots)

@@ -1,6 +1,9 @@
 import {Cell} from "./Cell.js"
 
 const mod = (x, n) => (x % n + n) % n; //modulo func for negative nbs;
+const A = 86710969050178.5;
+const B = 9.41268203527779;
+
 
 export class Board {
 
@@ -77,7 +80,61 @@ export class Board {
 
             })
         })
+
+
     }
+
+    getRo(t){
+        return A/B+(1-(A/B))*Math.exp(-B*t);
+    }
+
+    getSigma(t){
+        return 1.9*(0.257*Math.pow(10,-9))*(8*Math.pow(10,10))*Math.sqrt(this.getRo(t));
+    }
+
+    getDeltaRo(t1,t2){
+        return this.getRo(t2)-this.getRo(t1);
+    }
+
+    avgRoDensity(deltaRo){
+        return deltaRo/(window.xCells*window.yCells);
+    }
+
+    giveXPercentToEachReturnRest(x,deltaRo){
+        let avg = this.avgRoDensity(deltaRo)*x/100;
+        window.cellsArray.forEach((line,y)=>line.forEach((cell,x)=>{
+            if(cell.dyslocDensity)
+                cell.dyslocDensity += avg;
+            else
+                cell.dyslocDensity = avg;
+        }));
+        return deltaRo*(100-x)/100;
+        //return this.avgRoDensity(deltaRo)-avg;
+    }
+
+    getRandomCell(){
+        let x = Math.trunc(Math.random()*window.xCells);
+        let y = Math.trunc(Math.random()*window.yCells);
+
+        return cellsArray[y][x];
+    }
+
+    getBorderCell(){
+        let randomCell = this.getRandomCell();
+        while(randomCell.getEnergy()<1){
+            randomCell=this.getRandomCell();
+        }
+        return randomCell;
+    }
+
+    getInsideCell(){
+        let randomCell = this.getRandomCell();
+        while(randomCell.getEnergy()>0){
+            randomCell=this.getRandomCell();
+        }
+        return randomCell;
+    }
+
 
     drawGrid(width = window.canvas.width, height = window.canvas.height) {
         window.cellsArray.forEach((line, yCells) => {

@@ -15,6 +15,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 var mod = function mod(x, n) {
     return (x % n + n) % n;
 }; //modulo func for negative nbs;
+var A = 86710969050178.5;
+var B = 9.41268203527779;
 
 var Board = exports.Board = function () {
     function Board(xCells, yCells) {
@@ -106,6 +108,64 @@ var Board = exports.Board = function () {
     }
 
     _createClass(Board, [{
+        key: "getRo",
+        value: function getRo(t) {
+            return A / B + (1 - A / B) * Math.exp(-B * t);
+        }
+    }, {
+        key: "getSigma",
+        value: function getSigma(t) {
+            return 1.9 * (0.257 * Math.pow(10, -9)) * (8 * Math.pow(10, 10)) * Math.sqrt(this.getRo(t));
+        }
+    }, {
+        key: "getDeltaRo",
+        value: function getDeltaRo(t1, t2) {
+            return this.getRo(t2) - this.getRo(t1);
+        }
+    }, {
+        key: "avgRoDensity",
+        value: function avgRoDensity(deltaRo) {
+            return deltaRo / (window.xCells * window.yCells);
+        }
+    }, {
+        key: "giveXPercentToEachReturnRest",
+        value: function giveXPercentToEachReturnRest(x, deltaRo) {
+            var avg = this.avgRoDensity(deltaRo) * x / 100;
+            window.cellsArray.forEach(function (line, y) {
+                return line.forEach(function (cell, x) {
+                    if (cell.dyslocDensity) cell.dyslocDensity += avg;else cell.dyslocDensity = avg;
+                });
+            });
+            return deltaRo * (100 - x) / 100;
+            //return this.avgRoDensity(deltaRo)-avg;
+        }
+    }, {
+        key: "getRandomCell",
+        value: function getRandomCell() {
+            var x = Math.trunc(Math.random() * window.xCells);
+            var y = Math.trunc(Math.random() * window.yCells);
+
+            return cellsArray[y][x];
+        }
+    }, {
+        key: "getBorderCell",
+        value: function getBorderCell() {
+            var randomCell = this.getRandomCell();
+            while (randomCell.getEnergy() < 1) {
+                randomCell = this.getRandomCell();
+            }
+            return randomCell;
+        }
+    }, {
+        key: "getInsideCell",
+        value: function getInsideCell() {
+            var randomCell = this.getRandomCell();
+            while (randomCell.getEnergy() > 0) {
+                randomCell = this.getRandomCell();
+            }
+            return randomCell;
+        }
+    }, {
         key: "drawGrid",
         value: function drawGrid() {
             var _this = this;
@@ -168,6 +228,9 @@ var Cell = exports.Cell = function () {
         this.neighbours = [];
         this.color = null;
         this.energy = null;
+        this.rx = null;
+        this.dyslocDensity = 0;
+        this.recrystaliseState = null;
     }
 
     _createClass(Cell, [{
@@ -181,6 +244,41 @@ var Cell = exports.Cell = function () {
             var color = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : null;
 
             if (this.val == 0) this.color = color || "#ffffff";else this.color = color || "hsl(" + this.val * 29 % 360 + ", 75%, 50%)";
+            return this;
+        }
+    }, {
+        key: "obtainDyslocDensity",
+        value: function obtainDyslocDensity(density) {
+            if (this.dyslocDensity == null) throw new Error("shouldn't be null");
+            this.dyslocDensity += density;
+        }
+    }, {
+        key: "doNeighbourRecrystalisedAtTime",
+        value: function doNeighbourRecrystalisedAtTime(time) {
+            if (this.neighbours == null || this.neighbours.length < 1) throw new Error("neighbours empty");
+            var retVal = false;
+
+            this.neighbours.forEach(function (nb) {
+
+                if (nb.rx == time) {
+                    retVal = true;
+                }
+            });
+            return retVal;
+        }
+    }, {
+        key: "isDyslocDensityOfNeighborsSmallerThanMine",
+        value: function isDyslocDensityOfNeighborsSmallerThanMine() {
+            var _this = this;
+
+            var retval = true;
+            if (this.dyslocDensity == null) throw new Error("dysloc val null");
+            if (this.neighbours == null || this.neighbours.length < 1) throw new Error("neighbours empty");
+
+            this.neighbours.forEach(function (nb) {
+                if (nb.dyslocDensity > _this.dyslocDensity) retval = false;
+            });
+            return retval;
         }
     }, {
         key: "click",
@@ -223,7 +321,7 @@ var Cell = exports.Cell = function () {
         key: "growMC",
         value: function growMC() {
             var dE = this.deltaEnergy();
-            var p = probability(dE.delta, -6); //kt stała <0.1 -6>;
+            var p = probability(dE.delta, window.kt); //kt stała <0.1 -6>;
             if (p > Math.random()) return dE.hisVal;
             return this.val;
         }
@@ -279,7 +377,7 @@ var Cell = exports.Cell = function () {
     }, {
         key: "getCircularNeighbourhood",
         value: function getCircularNeighbourhood(radius) {
-            var _this = this;
+            var _this2 = this;
 
             var circNeigbours = [];
             var potentialNeighbours = this.getSquareNeighbourhood(radius);
@@ -289,13 +387,13 @@ var Cell = exports.Cell = function () {
                     var cell = potentialNeighbours.circularNeighbours[index];
                     var xShift = cell.x - Math.trunc(cell.x);
                     var yShift = cell.y - Math.trunc(cell.y);
-                    if (_this.isInCircle({ "x": val.x + xShift, "y": val.y + yShift }, radius)) circNeigbours.push(cell);
+                    if (_this2.isInCircle({ "x": val.x + xShift, "y": val.y + yShift }, radius)) circNeigbours.push(cell);
                 });
             } else {
                 potentialNeighbours.circularNeighbours.forEach(function (cell) {
                     var xShift = cell.x - Math.trunc(cell.x);
                     var yShift = cell.y - Math.trunc(cell.y);
-                    if (_this.isInCircle({ "x": cell.x + xShift, "y": cell.y + yShift }, radius)) circNeigbours.push(cell);
+                    if (_this2.isInCircle({ "x": cell.x + xShift, "y": cell.y + yShift }, radius)) circNeigbours.push(cell);
                 });
             }
 
@@ -395,9 +493,10 @@ var Cell = exports.Cell = function () {
         value: function drawCell() {
             var size = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : window.gridSize;
             var ctx = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : window.ctx;
+            var color = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : this.color;
 
             ctx.globalAlpha = 1;
-            ctx.fillStyle = this.color;
+            ctx.fillStyle = color;
             ctx.fillRect(Math.trunc(this.x) * size, Math.trunc(this.y) * size, size, size);
 
             if (window.dots) this.drawDot();
@@ -442,7 +541,13 @@ var _Cell = require("./Cell");
 var _Board = require("./Board");
 
 window.start = function () {
+    window.max = Number.MIN_VALUE;
+    window.min = Number.MAX_VALUE;
     console.log("START!!");
+
+    window.packages = document.getElementById('packages').valueAsNumber;
+    window.xPercent = document.getElementById('x').valueAsNumber;
+
     window.xCells = document.getElementById("xCells").valueAsNumber;
     window.yCells = document.getElementById("yCells").valueAsNumber;
     window.yCount = document.getElementById("yCount").valueAsNumber;
@@ -455,6 +560,7 @@ window.start = function () {
     window.setPeroidity();
     window.setNumbers();
     window.setDots();
+    window.radiusVal = document.getElementById('radius').valueAsNumber || 2;
     window.generated = false;
     window.updatePentagon();
     window.speed = 1000 / document.getElementById("speedMultiplier").valueAsNumber;
@@ -462,6 +568,31 @@ window.start = function () {
     window.board = new _Board.Board(window.xCells, window.yCells, window.gridSize);
     window.initState();
     board.drawGrid();
+    window.criticalDensity = 4.22 * Math.pow(10, 12) / (window.xCells * window.yCells);
+};
+
+window.getDownloadableFile = function (data, filename) {
+
+    if (!data) {
+        console.error('Console.save: No data');
+        return;
+    }
+
+    if (!filename) filename = 'console.json';
+
+    if ((typeof data === "undefined" ? "undefined" : _typeof(data)) === "object") {
+        data = JSON.stringify(data, undefined, 4);
+    }
+
+    var blob = new Blob([data], { type: 'text/json' }),
+        e = document.createEvent('MouseEvents'),
+        a = document.createElement('a');
+
+    a.download = filename;
+    a.href = window.URL.createObjectURL(blob);
+    a.dataset.downloadurl = ['text/json', a.download, a.href].join(':');
+    e.initMouseEvent('click', true, false, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
+    a.dispatchEvent(e);
 };
 
 window.setPeroidity = function () {
@@ -475,12 +606,41 @@ window.setNumbers = function () {
 };
 
 window.handleEnergyButton = function () {
+    window.max = Number.MIN_VALUE;
+    window.min = Number.MAX_VALUE;
+    window.cellsArray.forEach(function (line, y, linesArray) {
+        line.forEach(function (cell, x, rowArray) {
+            var newVal = cell.getEnergy();
+            if (newVal > window.max) window.max = newVal;
+            if (newVal < window.min) window.min = newVal;
+        });
+    });
     window.energyShow = document.getElementById('Energy').checked;
 
     window.cellsArray.forEach(function (line, y) {
         return line.forEach(function (cell, x) {
             if (window.energyShow === true) {
                 window.cellsArray[y][x].drawEnergy();
+            } else {
+                window.cellsArray[y][x].updateColor();
+                window.cellsArray[y][x].drawCell();
+            }
+        });
+    });
+};
+
+window.handleDensityButton = function () {
+
+    window.densityShow = document.getElementById('Density').checked;
+
+    window.cellsArray.forEach(function (line, y) {
+        return line.forEach(function (cell, x) {
+            if (window.densityShow === true) {
+                if (cell.recrystaliseState !== null) {
+                    if (cell.recrystaliseState === true) {
+                        cell.drawCell(window.gridSize, window.ctx, "#ff0900");
+                    }
+                }
             } else {
                 window.cellsArray[y][x].updateColor();
                 window.cellsArray[y][x].drawCell();
@@ -542,6 +702,8 @@ window.updatePentagon = function () {
 var game;
 
 window.run = function () {
+    window.max = Number.MIN_VALUE;
+    window.min = Number.MAX_VALUE;
     if (!game && !generated) {
         game = setInterval(function () {
             var newVals = window.cellsArray.map(function (line, yIndex) {
@@ -565,7 +727,6 @@ window.run = function () {
             });
             if (conti === false) {
                 window.generated = true;
-                window.mcGrowth();
                 clearInterval(game);
                 game = null;
                 document.getElementById("startBtn").textContent = "Start";
@@ -575,7 +736,6 @@ window.run = function () {
         }, 1000 / document.getElementById("speedMultiplier").valueAsNumber);
         document.getElementById("startBtn").textContent = "STOP";
     } else {
-        window.mcGrowth();
         clearInterval(game);
         game = null;
         document.getElementById("startBtn").textContent = "Start";
@@ -737,6 +897,7 @@ window.initState = function (i, j) {
 
 document.addEventListener("DOMContentLoaded", function () {
     start();
+    run();
     document.getElementById("workingCanvas").addEventListener('click', function (event) {
 
         var xClickIndex = Math.floor(getCursorPosition(window.canvas, event)[0] / window.gridSize);
@@ -776,6 +937,85 @@ function getCursorPosition(canvas, event) {
     return [x, y];
 }
 
+window.dyslocation = function (timeStep, endTime) {
+    var packages = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : window.packages;
+    var xPercent = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : window.xPercent;
+    var crtiticalAvgRoDensity = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : window.criticalDensity;
+    var startTime = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : 0;
+
+    window.data = [];
+
+    var _loop3 = function _loop3(time) {
+        var timer = setTimeout(function () {
+            document.getElementById("textBox").innerHTML = "Time:" + time + "/" + endTime;
+            var deltaRo = board.getDeltaRo(time - timeStep, time);
+            var avgRoDensity = board.avgRoDensity(deltaRo);
+            var deltaRoLeft = board.giveXPercentToEachReturnRest(xPercent, deltaRo);
+
+            var packageSize = deltaRoLeft / packages;
+            console.log("Time: " + time + "/" + endTime + "  Ro:" + board.getRo(time));
+            window.data.push({ "Time": time, "ro": board.getRo(time) });
+            while (deltaRoLeft - packageSize > 0) {
+                var rand = Math.random() * 10;
+                if (rand < 8) {
+                    board.getBorderCell().obtainDyslocDensity(packageSize);
+                } else {
+                    board.getInsideCell().obtainDyslocDensity(packageSize);
+                }
+                deltaRoLeft -= packageSize;
+            }
+            {
+                var _rand = Math.random() * 10;
+                if (_rand < 8) {
+                    board.getBorderCell().obtainDyslocDensity(deltaRoLeft);
+                } else {
+                    board.getInsideCell().obtainDyslocDensity(deltaRoLeft);
+                }
+            } //give rest to random cell;
+
+            // cellsArray.forEach((line,y)=>line.forEach((cell,x)=>{
+            //     if((cell.dyslocDensity>crtiticalAvgRoDensity&& cell.getEnergy()>0)){
+            //         //console.log("gen");
+            //         cell.rx = time;
+            //         cell.recrystaliseState = true;
+            //         cell.dyslocDensity = 0;
+            //     }
+            // }));
+            // handleDensityButton();
+
+            cellsArray.forEach(function (line, y) {
+                return line.forEach(function (cell, x) {
+                    if (cell.dyslocDensity > crtiticalAvgRoDensity && cell.getEnergy() > 0) {
+                        //console.log("gen");
+                        cell.rx = time;
+                        cell.recrystaliseState = true;
+                        cell.dyslocDensity = 0;
+                    }
+                });
+            });
+            handleDensityButton();
+
+            var newVals = window.cellsArray.map(function (line, yIndex) {
+                return line.map(function (cell, xIndex) {
+                    if (cell.doNeighbourRecrystalisedAtTime(time - timeStep) && cell.isDyslocDensityOfNeighborsSmallerThanMine()) {
+                        //console.log("ne");
+                        cell.rx = time;
+                        cell.recrystaliseState = true;
+                        cell.dyslocDensity = 0;
+                    }
+                    return cell;
+                });
+            });
+
+            //window.cellsArray = newVals;
+        }, time * 5000 * (1000 / document.getElementById("speedMultiplier").valueAsNumber));
+    };
+
+    for (var time = startTime + timeStep; time <= endTime; time += timeStep) {
+        _loop3(time);
+    }
+};
+
 window.mcGrowth = function () {
     var iterations = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : window.iterations;
 
@@ -794,7 +1034,7 @@ window.mcGrowth = function () {
         });
     });
 
-    var _loop3 = function _loop3(i) {
+    var _loop4 = function _loop4(i) {
         setTimeout(function () {
             console.log("ITERATION" + i);
             cells.sort(function () {
@@ -812,7 +1052,7 @@ window.mcGrowth = function () {
     };
 
     for (var i = 0; i < iterations; i++) {
-        _loop3(i);
+        _loop4(i);
     }
 
     document.getElementById("startBtn").textContent = "START";

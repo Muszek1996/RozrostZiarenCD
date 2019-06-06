@@ -34,6 +34,9 @@ var Cell = exports.Cell = function () {
         this.neighbours = [];
         this.color = null;
         this.energy = null;
+        this.rx = null;
+        this.dyslocDensity = 0;
+        this.recrystaliseState = null;
     }
 
     _createClass(Cell, [{
@@ -47,6 +50,41 @@ var Cell = exports.Cell = function () {
             var color = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : null;
 
             if (this.val == 0) this.color = color || "#ffffff";else this.color = color || "hsl(" + this.val * 29 % 360 + ", 75%, 50%)";
+            return this;
+        }
+    }, {
+        key: "obtainDyslocDensity",
+        value: function obtainDyslocDensity(density) {
+            if (this.dyslocDensity == null) throw new Error("shouldn't be null");
+            this.dyslocDensity += density;
+        }
+    }, {
+        key: "doNeighbourRecrystalisedAtTime",
+        value: function doNeighbourRecrystalisedAtTime(time) {
+            if (this.neighbours == null || this.neighbours.length < 1) throw new Error("neighbours empty");
+            var retVal = false;
+
+            this.neighbours.forEach(function (nb) {
+
+                if (nb.rx == time) {
+                    retVal = true;
+                }
+            });
+            return retVal;
+        }
+    }, {
+        key: "isDyslocDensityOfNeighborsSmallerThanMine",
+        value: function isDyslocDensityOfNeighborsSmallerThanMine() {
+            var _this = this;
+
+            var retval = true;
+            if (this.dyslocDensity == null) throw new Error("dysloc val null");
+            if (this.neighbours == null || this.neighbours.length < 1) throw new Error("neighbours empty");
+
+            this.neighbours.forEach(function (nb) {
+                if (nb.dyslocDensity > _this.dyslocDensity) retval = false;
+            });
+            return retval;
         }
     }, {
         key: "click",
@@ -89,7 +127,7 @@ var Cell = exports.Cell = function () {
         key: "growMC",
         value: function growMC() {
             var dE = this.deltaEnergy();
-            var p = probability(dE.delta, -6); //kt stała <0.1 -6>;
+            var p = probability(dE.delta, window.kt); //kt stała <0.1 -6>;
             if (p > Math.random()) return dE.hisVal;
             return this.val;
         }
@@ -145,7 +183,7 @@ var Cell = exports.Cell = function () {
     }, {
         key: "getCircularNeighbourhood",
         value: function getCircularNeighbourhood(radius) {
-            var _this = this;
+            var _this2 = this;
 
             var circNeigbours = [];
             var potentialNeighbours = this.getSquareNeighbourhood(radius);
@@ -155,13 +193,13 @@ var Cell = exports.Cell = function () {
                     var cell = potentialNeighbours.circularNeighbours[index];
                     var xShift = cell.x - Math.trunc(cell.x);
                     var yShift = cell.y - Math.trunc(cell.y);
-                    if (_this.isInCircle({ "x": val.x + xShift, "y": val.y + yShift }, radius)) circNeigbours.push(cell);
+                    if (_this2.isInCircle({ "x": val.x + xShift, "y": val.y + yShift }, radius)) circNeigbours.push(cell);
                 });
             } else {
                 potentialNeighbours.circularNeighbours.forEach(function (cell) {
                     var xShift = cell.x - Math.trunc(cell.x);
                     var yShift = cell.y - Math.trunc(cell.y);
-                    if (_this.isInCircle({ "x": cell.x + xShift, "y": cell.y + yShift }, radius)) circNeigbours.push(cell);
+                    if (_this2.isInCircle({ "x": cell.x + xShift, "y": cell.y + yShift }, radius)) circNeigbours.push(cell);
                 });
             }
 
@@ -261,9 +299,10 @@ var Cell = exports.Cell = function () {
         value: function drawCell() {
             var size = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : window.gridSize;
             var ctx = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : window.ctx;
+            var color = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : this.color;
 
             ctx.globalAlpha = 1;
-            ctx.fillStyle = this.color;
+            ctx.fillStyle = color;
             ctx.fillRect(Math.trunc(this.x) * size, Math.trunc(this.y) * size, size, size);
 
             if (window.dots) this.drawDot();

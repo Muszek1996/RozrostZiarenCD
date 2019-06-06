@@ -9,46 +9,61 @@
 <div>
 
     Zarodkowanie:<select id="InitState" onchange="resetCounter();start()">
-    <option value="jednorodne" selected="selected">jednorodne</option>
-    <option value="promien">promien</option>
-    <option value="losowe">losowe</option>
+    <option value="jednorodne">jednorodne</option>
+    <option value="promien" >promien</option>
+    <option value="losowe" selected>losowe</option>
     <option value="wyklinanie">wyklinanie</option>
 </select>
 
-        <p id="yPar" style="display:inline">yCount:</p><input type="number" id="yCount" min="1" max="1000" value="5" onclick="start()">
+        <p id="yPar" style="display:inline">yCount:</p><input type="number" id="yCount" min="1" max="1000" value="20" onclick="start()">
     &emsp;&emsp;<p id="xPar" style="display:inline">xCount:</p><input type="number" id="xCount" min="1" max="1000" value="5" onchange="start()">
     Sąsiedztwo:<select id="NeighbourState" onchange="updateNeigbourhood()">
-    <option value="Von Neumann" selected="selected">Von Neumann'a</option>
+    <option value="Von Neumann" >Von Neumann'a</option>
     <option value="Moore">Moore'a</option>
     <option value="Pentagonalne">Pentagonalne Losowe</option>
-    <option value="Heksagonalne">Heksagonalne</option>
-    <option value="Promien">Z promieniem</option>
+    <option value="Heksagonalne" selected>Heksagonalne</option>
+    <option value="Promien"  >Z promieniem</option>
 </select>
     <p id="pentagonP" style="display:inline"></p><select id="Pentagon" style="display:none" onchange="updatePentagon();resetCounter();start();">
-    <option value="Losowe" selected="selected" >Losowe</option>
+    <option value="Losowe" selected >Losowe</option>
     <option value="Lewe" >Lewe</option>
     <option value="Prawe">Prawe</option>
     <option id ="Gora" value="Góra" >Góra</option>
     <option id ="Dol" value="Dół">Dół</option>
 </select>
-    &emsp;<p id="radiusP" style="display:inline"></p><input style="display:none" type="number" id="radius" min="1" max="1000" value="NULL" onchange="window.radiusVal = document.getElementById('radius').valueAsNumber;resetCounter();start()">
+    &emsp;<p id="radiusP" style="display:inline"></p><input style="display:none" type="number" id="radius" min="1" max="1000" value="2" onchange="window.radiusVal = document.getElementById('radius').valueAsNumber;resetCounter();start()">
     &emsp;&emsp;Peroid:<input type="checkbox" id="peroid" checked onchange="start()">
         Numbers:<input type="checkbox" id="numbers" onchange="setNumbers()">
-        Dots:<input type="checkbox" id="dots" checked onchange="setDots();start()">
-    &emsp;&emsp;yCells<input type="number" id="yCells" min="1" max="1000" value="45" onclick="start()">
-    &emsp;&emsp;xCells:<input type="number" id="xCells" min="1" max="1000" value="105" onchange="start()">
-    &emsp;&emsp;SpeedMultiplier:<input type="number" id="speedMultiplier" min="1" max="25" value="5" onchange="run();run()">
+        Dots:<input type="checkbox" id="dots" onchange="setDots();start()">
+    &emsp;&emsp;yCells<input type="number" id="yCells" min="1" max="1000" value="222" onclick="start()">
+    &emsp;&emsp;xCells:<input type="number" id="xCells" min="1" max="1000" value="366" onchange="start()">
+    &emsp;&emsp;SpeedMultiplier:<input type="number" id="speedMultiplier" min="1" max="25" value="25" onchange="run();run()">
 
 </div>
 <div>
     <canvas id="workingCanvas" width="100%" height="600" style="border:1px solid #d3d3d3"></canvas>
 </div>
 Energy:<input type="checkbox" id="Energy" onchange="handleEnergyButton()">
+Density:<input type="checkbox" id="Density" checked onchange="handleDensityButton()">
 Iterations:<input type="number" id="iterations" min="1" max="1000" value="1" onclick="handleIterations();">
 
+kt:<input type="number" id="kt" min="0.1" max="6" value="0.1" step="0.01" onchange="window.kt = document.getElementById('kt').valueAsNumber">
+packages:<input type="number" id="packages" min="1" max="100000" value="15" step="1" onchange="window.packages = document.getElementById('packages').valueAsNumber">
+x:<input type="number" id="x" min="0" max="100" value="95" step="1" onchange="window.xPercent = document.getElementById('x').valueAsNumber">
+criticalDensity:<input type="number" id="criticalDensity" min="1000000" max="999999999" value="51937183" step="1000000" onchange="window.criticalDensity = document.getElementById('criticalDensity').valueAsNumber">
+
 <p id="textBox" style="display:inline"></p>
+step:<input type="number" id="timestep" min="0" max="0.1" value="0.001" step="0.0001">
+time:<input type="number" id="time" min="0.002" max="100" value="0.007" step="0.005" >
+
+<button id="dysloc" style="float: right;font-size: x-large" onclick="if(window.generated)window.dyslocation(document.getElementById('timestep').valueAsNumber,document.getElementById('time').valueAsNumber);else alert('Nie wygenerowano mikrostruktury')">Dysloc</button>
 
 <button id="startBtn" style="float: right;font-size: x-large" onclick="run()">Start</button>
 <button id="reset" style="float: right;font-size: x-large" onclick="resetCounter();start()">RESET</button>
+
+<button id="grow" style="float: right;font-size: x-large" onclick="if(window.generated) window.mcGrowth(); else alert('Nie wygenerowano mikrostruktury')">MC GROW</button>
+<button id="getDataButton" style="float: right;font-size: x-large" onclick="window.getDownloadableFile(window.data,'dane.json')">FILE</button>
+
+
 </body>
 </html>

@@ -14,6 +14,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 var mod = function mod(x, n) {
     return (x % n + n) % n;
 }; //modulo func for negative nbs;
+var A = 86710969050178.5;
+var B = 9.41268203527779;
 
 var Board = exports.Board = function () {
     function Board(xCells, yCells) {
@@ -105,6 +107,64 @@ var Board = exports.Board = function () {
     }
 
     _createClass(Board, [{
+        key: "getRo",
+        value: function getRo(t) {
+            return A / B + (1 - A / B) * Math.exp(-B * t);
+        }
+    }, {
+        key: "getSigma",
+        value: function getSigma(t) {
+            return 1.9 * (0.257 * Math.pow(10, -9)) * (8 * Math.pow(10, 10)) * Math.sqrt(this.getRo(t));
+        }
+    }, {
+        key: "getDeltaRo",
+        value: function getDeltaRo(t1, t2) {
+            return this.getRo(t2) - this.getRo(t1);
+        }
+    }, {
+        key: "avgRoDensity",
+        value: function avgRoDensity(deltaRo) {
+            return deltaRo / (window.xCells * window.yCells);
+        }
+    }, {
+        key: "giveXPercentToEachReturnRest",
+        value: function giveXPercentToEachReturnRest(x, deltaRo) {
+            var avg = this.avgRoDensity(deltaRo) * x / 100;
+            window.cellsArray.forEach(function (line, y) {
+                return line.forEach(function (cell, x) {
+                    if (cell.dyslocDensity) cell.dyslocDensity += avg;else cell.dyslocDensity = avg;
+                });
+            });
+            return deltaRo * (100 - x) / 100;
+            //return this.avgRoDensity(deltaRo)-avg;
+        }
+    }, {
+        key: "getRandomCell",
+        value: function getRandomCell() {
+            var x = Math.trunc(Math.random() * window.xCells);
+            var y = Math.trunc(Math.random() * window.yCells);
+
+            return cellsArray[y][x];
+        }
+    }, {
+        key: "getBorderCell",
+        value: function getBorderCell() {
+            var randomCell = this.getRandomCell();
+            while (randomCell.getEnergy() < 1) {
+                randomCell = this.getRandomCell();
+            }
+            return randomCell;
+        }
+    }, {
+        key: "getInsideCell",
+        value: function getInsideCell() {
+            var randomCell = this.getRandomCell();
+            while (randomCell.getEnergy() > 0) {
+                randomCell = this.getRandomCell();
+            }
+            return randomCell;
+        }
+    }, {
         key: "drawGrid",
         value: function drawGrid() {
             var _this = this;
