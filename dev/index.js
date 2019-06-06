@@ -456,6 +456,8 @@ window.dyslocation = function (timeStep, endTime) {
                         cell.rx = time;
                         cell.recrystaliseState = true;
                         cell.dyslocDensity = 0;
+                        cell.updateColor();
+                        cell.click();
                     }
                 });
             });
@@ -463,11 +465,14 @@ window.dyslocation = function (timeStep, endTime) {
 
             var newVals = window.cellsArray.map(function (line, yIndex) {
                 return line.map(function (cell, xIndex) {
-                    if (cell.doNeighbourRecrystalisedAtTime(time - timeStep) && cell.isDyslocDensityOfNeighborsSmallerThanMine()) {
+                    var nb = cell.doNeighbourRecrystalisedAtTime(time - timeStep);
+                    if (nb["bool"] && cell.isDyslocDensityOfNeighborsSmallerThanMine()) {
                         //console.log("ne");
                         cell.rx = time;
                         cell.recrystaliseState = true;
                         cell.dyslocDensity = 0;
+                        console.log(nb["val"]);
+                        cell.click(1, nb["val"]);
                     }
                     return cell;
                 });

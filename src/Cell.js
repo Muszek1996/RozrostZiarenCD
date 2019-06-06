@@ -48,14 +48,16 @@ export class Cell{
     doNeighbourRecrystalisedAtTime(time){
         if(this.neighbours == null || this.neighbours.length <1) throw new Error("neighbours empty");
         var retVal = false;
+        var val = null;
 
         this.neighbours.forEach(nb=>{
 
             if(nb.rx == time){
                 retVal = true;
+                val = nb.val;
             }
         });
-        return retVal;
+        return {"bool":retVal,"val":val};
     }
 
     isDyslocDensityOfNeighborsSmallerThanMine(){
@@ -69,10 +71,12 @@ export class Cell{
         return retval;
     }
 
-    click(){
-        this.val = window.counter++;
-        this.updateColor();
-        this.drawCell();
+    click(recolour = true,val = null){
+        this.val = val||window.counter++;
+        if(recolour){
+            this.updateColor();
+            this.drawCell();
+        }
         return this;
     }
 

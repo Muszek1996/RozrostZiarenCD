@@ -257,14 +257,16 @@ var Cell = exports.Cell = function () {
         value: function doNeighbourRecrystalisedAtTime(time) {
             if (this.neighbours == null || this.neighbours.length < 1) throw new Error("neighbours empty");
             var retVal = false;
+            var val = null;
 
             this.neighbours.forEach(function (nb) {
 
                 if (nb.rx == time) {
                     retVal = true;
+                    val = nb.val;
                 }
             });
-            return retVal;
+            return { "bool": retVal, "val": val };
         }
     }, {
         key: "isDyslocDensityOfNeighborsSmallerThanMine",
@@ -283,9 +285,14 @@ var Cell = exports.Cell = function () {
     }, {
         key: "click",
         value: function click() {
-            this.val = window.counter++;
-            this.updateColor();
-            this.drawCell();
+            var recolour = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : true;
+            var val = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
+
+            this.val = val || window.counter++;
+            if (recolour) {
+                this.updateColor();
+                this.drawCell();
+            }
             return this;
         }
     }, {
@@ -990,6 +997,8 @@ window.dyslocation = function (timeStep, endTime) {
                         cell.rx = time;
                         cell.recrystaliseState = true;
                         cell.dyslocDensity = 0;
+                        cell.updateColor();
+                        cell.click();
                     }
                 });
             });
@@ -997,11 +1006,14 @@ window.dyslocation = function (timeStep, endTime) {
 
             var newVals = window.cellsArray.map(function (line, yIndex) {
                 return line.map(function (cell, xIndex) {
-                    if (cell.doNeighbourRecrystalisedAtTime(time - timeStep) && cell.isDyslocDensityOfNeighborsSmallerThanMine()) {
+                    var nb = cell.doNeighbourRecrystalisedAtTime(time - timeStep);
+                    if (nb["bool"] && cell.isDyslocDensityOfNeighborsSmallerThanMine()) {
                         //console.log("ne");
                         cell.rx = time;
                         cell.recrystaliseState = true;
                         cell.dyslocDensity = 0;
+                        console.log(nb["val"]);
+                        cell.click(1, nb["val"]);
                     }
                     return cell;
                 });
